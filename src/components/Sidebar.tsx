@@ -36,7 +36,7 @@ export const Sidebar: React.FC = () => {
         <img 
           alt="Transformer Tracker Logo" 
           className="h-10 w-10 object-contain rounded-lg shadow-sm" 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIjPGGNvNXtXMwlnv_QbsqApqhs1aIsu6PQcNrRJkf-pCd0GtWSUEd7zwkfkBWvuxYWKaflg8dn5lI5KEUYRDsHCxjsGyJ22iIDOeC-VW1oz_p10uH2dk9ejxJW8BKPXvl5lMQr8Sbb6qm4MmvWP2Fb0knAEj9e9IhGL4v9C00lew8lLCS-EYOItaG9rws6QDRwVPc2vCl7KIUuesBwaXyiY5vjJZFf-m-t5ISga8F4B9MSG_crAejfbl4a455SYfOdrLGoKQ8PMT_yQ" 
+          src="/logo.png" 
         />
         <div>
           <h1 className="font-headline-md text-headline-md text-primary leading-tight font-semibold">

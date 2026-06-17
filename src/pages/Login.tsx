@@ -73,7 +73,7 @@ export const Login: React.FC = () => {
               <img 
                 alt="Eddy Logo" 
                 className="w-16 h-16 object-contain" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmo50XCXY55F6bQHOzuwemQLPZLX85_hfOI7BzkLzCX2BQPQeb196jboAJjFPWQpQN_6G2NXbswJ8aifWTSFYeNTT0YfQsfYYfMmuJAiZgjBmEyt8bj9nyUl4Ccevzn4I_MMQnCEUxoKAq00ZIWs3JwYsg90TkSyhi7ncmIQ1Dx5cn6rddVlp5b-ZE6knXlASnpZZTzgJ7ce64TOY94RjxvIVWlcXg8_kOMJWmIIG4KqOzbB7hZcryaaFPYsjxzPlGC_ueRCHkHn5-5g" 
+                src="/logo.png" 
               />
               <div>
                 <h1 className="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">
