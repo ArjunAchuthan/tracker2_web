@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #00668a;
+  --color-primary-container: #1aa7df;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #00384e;
+  
+  --color-secondary: #4f5a9a;
+  --color-secondary-container: #acb7fe;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #3b4685;
+  
+  --color-tertiary: #885200;
+  --color-tertiary-container: #da8a1f;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #4d2c00;
+  
+  --color-background: #f5faff;
+  --color-on-background: #171c20;
+  
+  --color-surface: #f5faff;
+  --color-on-surface: #171c20;
+  --color-surface-dim: #d6dadf;
+  --color-surface-bright: #f5faff;
+  --color-surface-container: #eaeef3;
+  --color-surface-container-low: #f0f4f9;
+  --color-surface-container-high: #e4e9ed;
+  --color-surface-container-highest: #dee3e8;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-variant: #dee3e8;
+  --color-on-surface-variant: #3e484f;
+  
+  --color-outline: #6e7880;
+  --color-outline-variant: #bdc8d0;
+  
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-headline-lg: "Inter", sans-serif;
+  --font-headline-md: "Inter", sans-serif;
+  --font-body-lg: "Inter", sans-serif;
+  --font-body-md: "Inter", sans-serif;
+  --font-label-bold: "Inter", sans-serif;
+  --font-label-sm: "Inter", sans-serif;
+  
+  --spacing-gutter: 12px;
+  --spacing-container-padding: 16px;
+  --spacing-section-margin: 24px;
+  --spacing-base: 8px;
+  --spacing-card-gap: 16px;
+}
+
+/* Custom Utilities */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+}
+
+.shadow-soft {
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-ambient {
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: var(--font-sans);
+}
