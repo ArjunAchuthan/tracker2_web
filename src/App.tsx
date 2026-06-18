@@ -13,7 +13,22 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isLoggedIn = localStorage.getItem('tracker2_logged_in') === 'true';
   const location = useLocation();
 
-  if (!isLoggedIn) {
+  let isRoleBlocked = false;
+  const profileJson = localStorage.getItem('tracker2_user_profile');
+  if (profileJson) {
+    try {
+      const role = JSON.parse(profileJson).role;
+      if (role === 'Client Engineer' || role === 'Load Engineer') {
+        isRoleBlocked = true;
+      }
+    } catch (e) {}
+  }
+
+  if (!isLoggedIn || isRoleBlocked) {
+    if (isRoleBlocked) {
+      localStorage.removeItem('tracker2_logged_in');
+      localStorage.removeItem('tracker2_user_profile');
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -22,32 +37,11 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('tracker2_logged_in') === 'true');
-  const [role, setRole] = useState(() => {
-    const profileJson = localStorage.getItem('tracker2_user_profile');
-    if (profileJson) {
-      try {
-        return JSON.parse(profileJson).role || '';
-      } catch (e) {
-        return '';
-      }
-    }
-    return '';
-  });
   const location = useLocation();
 
   useEffect(() => {
     const handleAuthChange = () => {
       setIsLoggedIn(localStorage.getItem('tracker2_logged_in') === 'true');
-      const profileJson = localStorage.getItem('tracker2_user_profile');
-      if (profileJson) {
-        try {
-          setRole(JSON.parse(profileJson).role || '');
-        } catch (e) {
-          setRole('');
-        }
-      } else {
-        setRole('');
-      }
     };
     window.addEventListener('auth_state_changed', handleAuthChange);
     window.addEventListener('profile_updated', handleAuthChange);
@@ -71,38 +65,14 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           
           {/* Authenticated routes */}
-          <Route path="/" element={
-            <RequireAuth>
-              {role === 'Load Engineer' ? <Navigate to="/scanner" replace /> : <Dashboard />}
-            </RequireAuth>
-          } />
-          <Route path="/add" element={
-            <RequireAuth>
-              {role === 'Client Engineer' || role === 'Load Engineer' ? (
-                <Navigate to="/" replace />
-              ) : (
-                <AddTransformer />
-              )}
-            </RequireAuth>
-          } />
-          <Route path="/transformer/:serialNo" element={
-            <RequireAuth>
-              <TransformerDetails />
-            </RequireAuth>
-          } />
-          <Route path="/scanner" element={
-            <RequireAuth>
-              <Scanner />
-            </RequireAuth>
-          } />
-          <Route path="/profile" element={
-            <RequireAuth>
-              <Profile />
-            </RequireAuth>
-          } />
+          <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route path="/add" element={<RequireAuth><AddTransformer /></RequireAuth>} />
+          <Route path="/transformer/:serialNo" element={<RequireAuth><TransformerDetails /></RequireAuth>} />
+          <Route path="/scanner" element={<RequireAuth><Scanner /></RequireAuth>} />
+          <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
 
           {/* Fallback routing */}
-          <Route path="*" element={<Navigate to={role === 'Load Engineer' ? "/scanner" : "/"} replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </div>

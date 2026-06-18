@@ -1,34 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { ProfileService, type UserProfile } from '../services/profileService';
 
 export const Sidebar: React.FC = () => {
-  const [profile, setProfile] = useState<UserProfile>(ProfileService.getProfile());
-
-  useEffect(() => {
-    const handleUpdate = () => {
-      setProfile(ProfileService.getProfile());
-    };
-    window.addEventListener('profile_updated', handleUpdate);
-    return () => window.removeEventListener('profile_updated', handleUpdate);
-  }, []);
-
-  const role = profile.role;
-
   const navItems = [
     { to: "/", label: "Transformer List", icon: "list_alt" },
     { to: "/add", label: "Add Transformer", icon: "add_box" },
     { to: "/scanner", label: "Scanner", icon: "qr_code_scanner" },
     { to: "/profile", label: "Profile", icon: "account_circle" }
-  ].filter((item) => {
-    if (role === 'Load Engineer') {
-      return item.to === '/scanner' || item.to === '/profile';
-    }
-    if (role === 'Client Engineer') {
-      return item.to !== '/add';
-    }
-    return true;
-  });
+  ];
 
   return (
     <aside className="h-screen w-64 fixed left-0 top-0 bg-surface-container flex flex-col py-4 z-50 border-r border-outline-variant/20">
@@ -63,8 +42,6 @@ export const Sidebar: React.FC = () => {
           </NavLink>
         ))}
       </nav>
-
-
     </aside>
   );
 };

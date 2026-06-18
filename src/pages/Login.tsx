@@ -6,6 +6,7 @@ export const Login: React.FC = () => {
   const [pin, setPin] = useState('');
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export const Login: React.FC = () => {
     if (val.length <= 6) {
       setPin(val);
       setIsError(false);
+      setRoleError(null);
     }
   };
 
@@ -28,9 +30,17 @@ export const Login: React.FC = () => {
     if (pin.length !== 6) return;
 
     setIsLoading(true);
+    setRoleError(null);
     try {
       const profile = await ProfileService.login(pin);
       if (profile) {
+        if (profile.role === 'Client Engineer' || profile.role === 'Load Engineer') {
+          await ProfileService.logout();
+          setRoleError(`As a ${profile.role}, you can only log in through the Eddy Tracker mobile app.`);
+          setIsError(true);
+          setTimeout(() => setIsError(false), 500);
+          return;
+        }
         window.dispatchEvent(new Event('auth_state_changed'));
         navigate('/');
       } else {
@@ -86,6 +96,18 @@ export const Login: React.FC = () => {
           {/* Form Section */}
           <div className="px-10 pb-10">
             <div className="space-y-6">
+              {roleError && (
+                <div className={`p-4 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-start gap-3 text-sm transition-all ${isError ? 'animate-shake' : ''}`}>
+                  <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5 text-error" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    warning
+                  </span>
+                  <div className="text-left">
+                    <p className="font-semibold text-error mb-1">Access Restricted</p>
+                    <p className="text-xs leading-relaxed text-on-error-container">{roleError}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="font-semibold text-xs text-on-surface ml-1 block" htmlFor="pin">
                   Enter PIN (6 digits)
