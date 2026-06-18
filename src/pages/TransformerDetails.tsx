@@ -4,11 +4,20 @@ import { TransformerService } from '../services/transformerService';
 import type { Transformer } from '../services/transformerService';
 import { ProfileService, type UserProfile } from '../services/profileService';
 
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return 'Not Scheduled';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr;
+};
+
 export const TransformerDetails: React.FC = () => {
   const { serialNo } = useParams<{ serialNo: string }>();
   const [transformer, setTransformer] = useState<Transformer | null>(null);
   
-  const [shippingDate, setShippingDate] = useState('06/05/2026');
+  const [shippingDate, setShippingDate] = useState('05/06/2026');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(5); // June (0-indexed)
@@ -49,10 +58,10 @@ export const TransformerDetails: React.FC = () => {
         if (item) {
           setTransformer(item);
           if (item.dateSubmitted) {
-            // Convert YYYY-MM-DD to MM/DD/YYYY
+            // Convert YYYY-MM-DD to DD/MM/YYYY
             const parts = item.dateSubmitted.split('-');
             if (parts.length === 3) {
-              setShippingDate(`${parts[1]}/${parts[2]}/${parts[0]}`);
+              setShippingDate(`${parts[2]}/${parts[1]}/${parts[0]}`);
               setSelectedDay(parseInt(parts[2]));
               setCurrentMonth(parseInt(parts[1]) - 1);
               setCurrentYear(parseInt(parts[0]));
@@ -98,7 +107,7 @@ export const TransformerDetails: React.FC = () => {
 
   const handleDaySelect = (day: number) => {
     setSelectedDay(day);
-    const dateStr = `${(currentMonth + 1).toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${currentYear}`;
+    const dateStr = `${day.toString().padStart(2, '0')}/${(currentMonth + 1).toString().padStart(2, '0')}/${currentYear}`;
     setShippingDate(dateStr);
     setIsCalendarOpen(false);
   };
@@ -107,10 +116,10 @@ export const TransformerDetails: React.FC = () => {
     if (!transformer) return;
     setIsLoading(true);
 
-    // Format shipping date to YYYY-MM-DD
+    // Format shipping date from DD/MM/YYYY to YYYY-MM-DD
     const dateParts = shippingDate.split('/');
     const formattedDate = dateParts.length === 3 
-      ? `${dateParts[2]}-${dateParts[0]}-${dateParts[1]}` 
+      ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` 
       : new Date().toISOString().split('T')[0];
 
     const success = await TransformerService.updateTransformerFields(transformer.serialNo, {
@@ -266,7 +275,7 @@ export const TransformerDetails: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-xs text-on-surface-variant uppercase">Item Shipping Date:</span>
-                  <span className="font-bold text-on-surface text-base">{transformer.dateSubmitted || 'Not Scheduled'}</span>
+                  <span className="font-bold text-on-surface text-base">{formatDate(transformer.dateSubmitted)}</span>
                 </div>
               </div>
             </div>
@@ -285,94 +294,96 @@ export const TransformerDetails: React.FC = () => {
           </div>
 
           {/* Action Card / Operations Hub */}
-          <div className="bg-white rounded-lg p-8 shadow-soft border border-surface-variant/30">
-            <h4 className="font-bold text-lg mb-6 text-on-surface">Operations Hub</h4>
-            <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
-              
-              {/* Custom Date Picker */}
-              <div className="relative">
-                <label className="font-bold text-xs text-on-surface mb-2 block uppercase" htmlFor="shipping-date">
-                  Shipping Date
-                </label>
-                <div 
-                  ref={triggerRef}
-                  onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                  className="relative group cursor-pointer"
-                >
-                  <input 
-                    className="w-full h-14 pl-4 pr-12 rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container transition-all cursor-pointer text-base outline-none" 
-                    id="shipping-date" 
-                    placeholder="Select Date" 
-                    readOnly 
-                    type="text"
-                    value={shippingDate}
-                  />
-                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">
-                    calendar_month
-                  </span>
+          {profile.role === 'Superadmin' && (
+            <div className="bg-white rounded-lg p-8 shadow-soft border border-surface-variant/30">
+              <h4 className="font-bold text-lg mb-6 text-on-surface">Operations Hub</h4>
+              <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
+                
+                {/* Custom Date Picker */}
+                <div className="relative">
+                  <label className="font-bold text-xs text-on-surface mb-2 block uppercase" htmlFor="shipping-date">
+                    Shipping Date
+                  </label>
+                  <div 
+                    ref={triggerRef}
+                    onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                    className="relative group cursor-pointer"
+                  >
+                    <input 
+                      className="w-full h-14 pl-4 pr-12 rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:border-primary-container transition-all cursor-pointer text-base outline-none" 
+                      id="shipping-date" 
+                      placeholder="Select Date" 
+                      readOnly 
+                      type="text"
+                      value={shippingDate}
+                    />
+                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">
+                      calendar_month
+                    </span>
+                  </div>
+
+                  {/* Date picker calendar popup */}
+                  {isCalendarOpen && (
+                    <div 
+                      ref={calendarRef}
+                      className="absolute left-0 mt-2 w-72 bg-white border border-outline-variant rounded-xl shadow-xl p-4 z-50"
+                    >
+                      <div className="flex justify-between items-center mb-4">
+                        <button 
+                          onClick={() => handleMonthChange('prev')}
+                          className="p-1 hover:bg-surface-container rounded-full text-primary cursor-pointer flex items-center"
+                          type="button"
+                        >
+                          <span className="material-symbols-outlined">chevron_left</span>
+                        </button>
+                        <span className="font-bold text-sm">
+                          {monthNames[currentMonth]} {currentYear}
+                        </span>
+                        <button 
+                          onClick={() => handleMonthChange('next')}
+                          className="p-1 hover:bg-surface-container rounded-full text-primary cursor-pointer flex items-center"
+                          type="button"
+                        >
+                          <span className="material-symbols-outlined">chevron_right</span>
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1 text-center mb-2 font-bold text-[10px] text-on-surface-variant uppercase">
+                        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1">
+                        {getCalendarDays()}
+                      </div>
+                    </div>
+                  )}
+                  <p className="mt-2 text-xs text-on-surface-variant font-medium">
+                    Confirmed delivery window for logistics planning.
+                  </p>
                 </div>
 
-                {/* Date picker calendar popup */}
-                {isCalendarOpen && (
-                  <div 
-                    ref={calendarRef}
-                    className="absolute left-0 mt-2 w-72 bg-white border border-outline-variant rounded-xl shadow-xl p-4 z-50"
+                {/* Action Buttons */}
+                <div className="flex flex-col md:flex-row gap-4 pt-4">
+                  <button 
+                    onClick={() => handleAction('Approved')}
+                    disabled={isLoading}
+                    className="flex-grow h-14 bg-[#4CAF50] hover:bg-[#43a047] text-white rounded-lg font-bold text-sm uppercase tracking-widest shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    type="button"
                   >
-                    <div className="flex justify-between items-center mb-4">
-                      <button 
-                        onClick={() => handleMonthChange('prev')}
-                        className="p-1 hover:bg-surface-container rounded-full text-primary cursor-pointer flex items-center"
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined">chevron_left</span>
-                      </button>
-                      <span className="font-bold text-sm">
-                        {monthNames[currentMonth]} {currentYear}
-                      </span>
-                      <button 
-                        onClick={() => handleMonthChange('next')}
-                        className="p-1 hover:bg-surface-container rounded-full text-primary cursor-pointer flex items-center"
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined">chevron_right</span>
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-7 gap-1 text-center mb-2 font-bold text-[10px] text-on-surface-variant uppercase">
-                      <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-                    </div>
-                    <div className="grid grid-cols-7 gap-1">
-                      {getCalendarDays()}
-                    </div>
-                  </div>
-                )}
-                <p className="mt-2 text-xs text-on-surface-variant font-medium">
-                  Confirmed delivery window for logistics planning.
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col md:flex-row gap-4 pt-4">
-                <button 
-                  onClick={() => handleAction('Approved')}
-                  disabled={isLoading}
-                  className="flex-grow h-14 bg-[#4CAF50] hover:bg-[#43a047] text-white rounded-lg font-bold text-sm uppercase tracking-widest shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined">check_circle</span>
-                  Approve
-                </button>
-                <button 
-                  onClick={() => handleAction('Rejected')}
-                  disabled={isLoading}
-                  className="flex-grow h-14 bg-[#F44336] hover:bg-[#e53935] text-white rounded-lg font-bold text-sm uppercase tracking-widest shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined">cancel</span>
-                  Reject
-                </button>
-              </div>
-            </form>
-          </div>
+                    <span className="material-symbols-outlined">check_circle</span>
+                    Approve
+                  </button>
+                  <button 
+                    onClick={() => handleAction('Rejected')}
+                    disabled={isLoading}
+                    className="flex-grow h-14 bg-[#F44336] hover:bg-[#e53935] text-white rounded-lg font-bold text-sm uppercase tracking-widest shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined">cancel</span>
+                    Reject
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* Initial device photos visualization */}
           {transformer.photos.length > 0 && (

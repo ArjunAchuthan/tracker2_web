@@ -5,6 +5,15 @@ import type { Transformer } from '../services/transformerService';
 import { ProfileService } from '../services/profileService';
 import type { UserProfile } from '../services/profileService';
 
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return 'Not Scheduled';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr;
+};
+
 export const Dashboard: React.FC = () => {
   const [transformers, setTransformers] = useState<Transformer[]>([]);
   const [search, setSearch] = useState('');
@@ -240,7 +249,7 @@ export const Dashboard: React.FC = () => {
                 </h3>
                 <div className="flex items-center gap-2 text-on-surface-variant mb-6 text-sm">
                   <span className="material-symbols-outlined text-[16px]">local_shipping</span>
-                  <span>Shipping Date: {item.dateSubmitted || 'Not Scheduled'}</span>
+                  <span>Shipping Date: {formatDate(item.dateSubmitted)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-outline font-semibold">
