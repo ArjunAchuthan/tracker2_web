@@ -17,6 +17,8 @@ export const AddTransformer: React.FC = () => {
   
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [serialError, setSerialError] = useState<string | null>(null);
+  const [isValidatingSerial, setIsValidatingSerial] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +74,28 @@ export const AddTransformer: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleSerialBlur = async () => {
+    const cleanSerial = serialNo.trim();
+    if (!cleanSerial) {
+      setSerialError(null);
+      return;
+    }
+    
+    setIsValidatingSerial(true);
+    setSerialError(null);
+    
+    try {
+      const existing = await TransformerService.getTransformerBySerialNo(cleanSerial);
+      if (existing) {
+        setSerialError("This Serial Number is already registered in the database.");
+      }
+    } catch (e) {
+      console.error("Error checking serial number uniqueness:", e);
+    } finally {
+      setIsValidatingSerial(false);
+    }
+  };
 
   const handlePartSelect = (p: string) => {
     setSelectedPart(p);
@@ -129,6 +153,14 @@ export const AddTransformer: React.FC = () => {
   const handleSave = async (status: 'Saved' | 'Submitted') => {
     if (!serialNo.trim()) {
       alert("Please enter a Serial Number.");
+      return;
+    }
+    if (serialError) {
+      alert("Please resolve the duplicate serial number error.");
+      return;
+    }
+    if (isValidatingSerial) {
+      alert("Please wait for the serial number check to finish.");
       return;
     }
     if (!selectedPart) {
@@ -230,12 +262,32 @@ export const AddTransformer: React.FC = () => {
                       Serial No
                     </label>
                     <input 
-                      className="w-full p-3 border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary-container focus:border-primary outline-none bg-surface-bright transition-all text-sm" 
+                      className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary-container focus:border-primary outline-none bg-surface-bright transition-all text-sm ${
+                        serialError 
+                          ? 'border-error/50 focus:border-error' 
+                          : 'border-outline-variant'
+                      }`}
                       placeholder="e.g. TR-2023-9981-X" 
                       type="text"
                       value={serialNo}
-                      onChange={(e) => setSerialNo(e.target.value)}
+                      onChange={(e) => {
+                        setSerialNo(e.target.value);
+                        setSerialError(null);
+                      }}
+                      onBlur={handleSerialBlur}
                     />
+                    {isValidatingSerial && (
+                      <p className="text-[11px] text-primary flex items-center gap-1 mt-1 font-medium animate-pulse">
+                        <span className="animate-spin h-3.5 w-3.5 border-2 border-primary border-t-transparent rounded-full"></span>
+                        Checking database for duplicates...
+                      </p>
+                    )}
+                    {serialError && (
+                      <p className="text-[11px] text-error flex items-center gap-1 mt-1 font-medium">
+                        <span className="material-symbols-outlined text-xs">error</span>
+                        {serialError}
+                      </p>
+                    )}
                   </div>
 
                   {/* Part Number Autocomplete Search Input */}
@@ -331,9 +383,27 @@ export const AddTransformer: React.FC = () => {
                         picture_as_pdf
                       </span>
                       {testReport ? (
-                        <div>
-                          <p className="text-sm font-semibold text-on-surface">{testReport.name}</p>
-                          <p className="text-xs text-outline mt-0.5">{(testReport.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <div className="space-y-3 w-full flex flex-col items-center">
+                          <div>
+                            <p className="text-sm font-semibold text-on-surface truncate max-w-xs">{testReport.name}</p>
+                            <p className="text-xs text-outline mt-0.5">{(testReport.size / 1024 / 1024).toFixed(2)} MB</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const url = URL.createObjectURL(testReport);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = testReport.name;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="px-4 py-2 bg-primary/10 text-primary font-bold text-xs rounded-lg hover:bg-primary/20 transition-all flex items-center gap-1.5 shadow-sm"
+                          >
+                            <span className="material-symbols-outlined text-sm">download</span>
+                            Download Test Report
+                          </button>
                         </div>
                       ) : (
                         <>
@@ -391,16 +461,20 @@ export const AddTransformer: React.FC = () => {
           <div className="p-6 bg-surface-container flex justify-end items-center gap-4 border-t border-surface-variant">
             <button 
               onClick={() => handleSave('Saved')}
-              disabled={isLoading}
-              className="px-6 py-2.5 rounded-lg border border-primary text-primary font-bold hover:bg-primary/5 transition-colors active:scale-95 cursor-pointer text-sm"
+              disabled={isLoading || !serialNo.trim() || !selectedPart || isValidatingSerial || !!serialError}
+              className={`px-6 py-2.5 rounded-lg border font-bold transition-all active:scale-95 text-sm ${
+                serialNo.trim() && selectedPart && !isLoading && !isValidatingSerial && !serialError
+                  ? 'border-primary text-primary hover:bg-primary/5 cursor-pointer'
+                  : 'border-outline-variant text-outline cursor-not-allowed'
+              }`}
             >
               Save Draft
             </button>
             <button 
               onClick={() => handleSave('Submitted')}
-              disabled={isLoading || !serialNo.trim() || !selectedPart}
+              disabled={isLoading || !serialNo.trim() || !selectedPart || photos.length === 0 || !testReport || isValidatingSerial || !!serialError}
               className={`px-8 py-2.5 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center gap-2 text-sm ${
-                serialNo.trim() && selectedPart && !isLoading
+                serialNo.trim() && selectedPart && photos.length > 0 && testReport && !isLoading && !isValidatingSerial && !serialError
                   ? 'bg-primary text-white hover:shadow-primary/20 cursor-pointer'
                   : 'bg-primary-container text-on-primary-container opacity-60 cursor-not-allowed'
               }`}
