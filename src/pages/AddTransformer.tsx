@@ -252,9 +252,19 @@ export const AddTransformer: React.FC = () => {
     <div className="flex-1 min-h-screen pb-12">
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 bg-white shadow-sm flex justify-between items-center px-6 py-4 w-full">
-        <h2 className="font-headline-md text-headline-md text-primary font-semibold">
-          {isEditMode ? "Edit Transformer Specification" : "Add New Transformer"}
-        </h2>
+        <div className="flex items-center gap-4">
+          {isEditMode && (
+            <button 
+              onClick={() => navigate('/')}
+              className="hover:bg-surface-container-high rounded-full p-2 transition-transform active:scale-95 cursor-pointer flex items-center justify-center text-primary"
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+          )}
+          <h2 className="font-headline-md text-headline-md text-primary font-semibold">
+            {isEditMode ? "Edit Transformer Specification" : "Add New Transformer"}
+          </h2>
+        </div>
         <div className="flex items-center gap-4">
           <button
             onClick={handleLogout}
