@@ -227,21 +227,28 @@ export const Dashboard: React.FC = () => {
 
         {/* Transformer Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
-          {filteredTransformers.map((item) => (
+           {filteredTransformers.map((item) => (
             <div
               key={item.serialNo}
-              className="bg-white rounded-lg shadow-soft overflow-hidden group hover:shadow-md hover:-translate-y-1 transition-all duration-200 border border-outline-variant/20"
+              onClick={() => navigate(`/transformer/${encodeURIComponent(item.serialNo)}`)}
+              className="bg-white rounded-lg shadow-soft overflow-hidden group hover:shadow-md hover:-translate-y-1 transition-all duration-200 border border-outline-variant/20 cursor-pointer"
             >
               <div className="px-5 py-3 flex justify-between items-center bg-surface-container-low border-b border-outline-variant/30">
                 <span className="font-bold text-outline text-[10px] tracking-widest uppercase">
                   Asset ID
                 </span>
-                <button
-                  onClick={() => navigate(`/transformer/${item.serialNo}`)}
-                  className="p-1.5 hover:bg-surface-variant rounded-md transition-colors text-primary cursor-pointer flex items-center"
-                >
-                  <span className="material-symbols-outlined text-[18px]">edit</span>
-                </button>
+                {item.pin === profile.pin && item.status !== 'Approved' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/edit/${encodeURIComponent(item.serialNo)}`);
+                    }}
+                    className="p-1.5 hover:bg-surface-variant rounded-md transition-colors text-primary cursor-pointer flex items-center"
+                    title="Edit Transformer"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                  </button>
+                )}
               </div>
               <div className="p-6">
                 <h3 className="font-bold text-xl text-on-surface mb-2 tracking-tight">

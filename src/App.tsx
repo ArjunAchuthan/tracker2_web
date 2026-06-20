@@ -67,6 +67,7 @@ function AppContent() {
           {/* Authenticated routes */}
           <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
           <Route path="/add" element={<RequireAuth><AddTransformer /></RequireAuth>} />
+          <Route path="/edit/:editSerialNo" element={<RequireAuth><AddTransformer /></RequireAuth>} />
           <Route path="/transformer/:serialNo" element={<RequireAuth><TransformerDetails /></RequireAuth>} />
           <Route path="/scanner" element={<RequireAuth><Scanner /></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />

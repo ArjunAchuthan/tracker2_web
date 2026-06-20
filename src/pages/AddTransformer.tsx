@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { TransformerService } from '../services/transformerService';
 import { ProfileService, type UserProfile } from '../services/profileService';
 
 export const AddTransformer: React.FC = () => {
+  const { editSerialNo } = useParams<{ editSerialNo: string }>();
+  const isEditMode = !!editSerialNo;
+
   const [serialNo, setSerialNo] = useState('');
   const [partNoSearch, setPartNoSearch] = useState('');
   const [partNumbers, setPartNumbers] = useState<string[]>([]);
@@ -12,8 +15,8 @@ export const AddTransformer: React.FC = () => {
   const [selectedPart, setSelectedPart] = useState('');
   
   const [testReport, setTestReport] = useState<File | null>(null);
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [existingTestReportUrl, setExistingTestReportUrl] = useState<string | null>(null);
+  const [photoItems, setPhotoItems] = useState<{ id: string; url: string; file: File | null }[]>([]);
   
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +36,35 @@ export const AddTransformer: React.FC = () => {
     window.addEventListener('profile_updated', handleUpdate);
     return () => window.removeEventListener('profile_updated', handleUpdate);
   }, []);
+
+  useEffect(() => {
+    if (isEditMode && editSerialNo) {
+      const fetchTransformer = async () => {
+        setIsLoading(true);
+        try {
+          const item = await TransformerService.getTransformerBySerialNo(decodeURIComponent(editSerialNo));
+          if (item) {
+            setSerialNo(item.serialNo);
+            setSelectedPart(item.partNo);
+            setPartNoSearch(item.partNo);
+            
+            const items = (item.photos || []).map(url => ({
+              id: url,
+              url: url,
+              file: null
+            }));
+            setPhotoItems(items);
+            setExistingTestReportUrl(item.testReportUrl);
+          }
+        } catch (e) {
+          console.error("Error loading transformer details:", e);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchTransformer();
+    }
+  }, [isEditMode, editSerialNo]);
 
   const handleLogout = () => {
     localStorage.removeItem('tracker2_logged_in');
@@ -76,6 +108,7 @@ export const AddTransformer: React.FC = () => {
   }, []);
 
   const handleSerialBlur = async () => {
+    if (isEditMode) return;
     const cleanSerial = serialNo.trim();
     if (!cleanSerial) {
       setSerialError(null);
@@ -137,17 +170,17 @@ export const AddTransformer: React.FC = () => {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newPhotos = Array.from(files);
-      setPhotos(prev => [...prev, ...newPhotos]);
-      
-      const newUrls = newPhotos.map(file => URL.createObjectURL(file));
-      setPhotoUrls(prev => [...prev, ...newUrls]);
+      const newItems = Array.from(files).map(file => ({
+        id: Math.random().toString(36).substring(2, 9),
+        url: URL.createObjectURL(file),
+        file: file
+      }));
+      setPhotoItems(prev => [...prev, ...newItems]);
     }
   };
 
-  const removePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
-    setPhotoUrls(prev => prev.filter((_, i) => i !== index));
+  const removePhoto = (id: string) => {
+    setPhotoItems(prev => prev.filter(item => item.id !== id));
   };
 
   const handleSave = async (status: 'Saved' | 'Submitted') => {
@@ -170,38 +203,48 @@ export const AddTransformer: React.FC = () => {
 
     setIsLoading(true);
 
-    // Upload files
-    let testReportUrl = null;
-    if (testReport) {
-      testReportUrl = await TransformerService.uploadFile(testReport, serialNo, 'test_report');
-    }
+    try {
+      // Upload files
+      let testReportUrl = existingTestReportUrl;
+      if (testReport) {
+        testReportUrl = await TransformerService.uploadFile(testReport, serialNo, 'test_report');
+      }
 
-    const uploadedPhotoUrls: string[] = [];
-    for (const photo of photos) {
-      const url = await TransformerService.uploadFile(photo, serialNo, 'photos');
-      uploadedPhotoUrls.push(url);
-    }
+      const uploadedPhotoUrls: string[] = [];
+      for (const item of photoItems) {
+        if (item.file) {
+          const url = await TransformerService.uploadFile(item.file, serialNo, 'photos');
+          uploadedPhotoUrls.push(url);
+        } else {
+          uploadedPhotoUrls.push(item.url);
+        }
+      }
 
-    const email = ProfileService.getProfile().email;
-    const pin = ProfileService.getProfile().pin;
+      const email = ProfileService.getProfile().email;
+      const pin = ProfileService.getProfile().pin;
 
-    const success = await TransformerService.submitTransformer({
-      serialNo,
-      partNo: selectedPart,
-      pin,
-      status,
-      dateSubmitted: status === 'Submitted' ? new Date().toISOString().split('T')[0] : null,
-      photos: uploadedPhotoUrls,
-      testReportUrl,
-      email
-    });
+      const success = await TransformerService.submitTransformer({
+        serialNo,
+        partNo: selectedPart,
+        pin,
+        status,
+        dateSubmitted: status === 'Submitted' ? new Date().toISOString().split('T')[0] : null,
+        photos: uploadedPhotoUrls,
+        testReportUrl,
+        email
+      });
 
-    setIsLoading(false);
+      setIsLoading(false);
 
-    if (success) {
-      navigate('/');
-    } else {
-      alert("Failed to save transformer. Please try again.");
+      if (success) {
+        navigate('/');
+      } else {
+        alert("Failed to save transformer. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting transformer details:", error);
+      setIsLoading(false);
+      alert("An error occurred. Please try again.");
     }
   };
 
@@ -210,7 +253,7 @@ export const AddTransformer: React.FC = () => {
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 bg-white shadow-sm flex justify-between items-center px-6 py-4 w-full">
         <h2 className="font-headline-md text-headline-md text-primary font-semibold">
-          Add New Transformer
+          {isEditMode ? "Edit Transformer Specification" : "Add New Transformer"}
         </h2>
         <div className="flex items-center gap-4">
           <button
@@ -266,15 +309,16 @@ export const AddTransformer: React.FC = () => {
                         serialError 
                           ? 'border-error/50 focus:border-error' 
                           : 'border-outline-variant'
-                      }`}
+                      } ${isEditMode ? 'opacity-60 cursor-not-allowed bg-surface-container' : ''}`}
                       placeholder="e.g. TR-2023-9981-X" 
                       type="text"
                       value={serialNo}
+                      readOnly={isEditMode}
                       onChange={(e) => {
                         setSerialNo(e.target.value);
                         setSerialError(null);
                       }}
-                      onBlur={handleSerialBlur}
+                      onBlur={isEditMode ? undefined : handleSerialBlur}
                     />
                     {isValidatingSerial && (
                       <p className="text-[11px] text-primary flex items-center gap-1 mt-1 font-medium animate-pulse">
@@ -382,22 +426,32 @@ export const AddTransformer: React.FC = () => {
                       <span className="material-symbols-outlined text-primary text-4xl mb-2 group-hover:scale-110 transition-transform">
                         picture_as_pdf
                       </span>
-                      {testReport ? (
+                      {testReport || existingTestReportUrl ? (
                         <div className="space-y-3 w-full flex flex-col items-center">
                           <div>
-                            <p className="text-sm font-semibold text-on-surface truncate max-w-xs">{testReport.name}</p>
-                            <p className="text-xs text-outline mt-0.5">{(testReport.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <p className="text-sm font-semibold text-on-surface truncate max-w-xs">
+                              {testReport ? testReport.name : "existing_test_report.pdf"}
+                            </p>
+                            <p className="text-xs text-outline mt-0.5">
+                              {testReport ? `${(testReport.size / 1024 / 1024).toFixed(2)} MB` : "Attached Report"}
+                            </p>
                           </div>
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const url = URL.createObjectURL(testReport);
+                              const url = testReport 
+                                ? URL.createObjectURL(testReport) 
+                                : existingTestReportUrl!;
                               const a = document.createElement('a');
                               a.href = url;
-                              a.download = testReport.name;
+                              if (testReport) {
+                                a.download = testReport.name;
+                              } else {
+                                a.target = "_blank";
+                              }
                               a.click();
-                              URL.revokeObjectURL(url);
+                              if (testReport) URL.revokeObjectURL(url);
                             }}
                             className="px-4 py-2 bg-primary/10 text-primary font-bold text-xs rounded-lg hover:bg-primary/20 transition-all flex items-center gap-1.5 shadow-sm"
                           >
@@ -422,11 +476,12 @@ export const AddTransformer: React.FC = () => {
                     <div className="grid grid-cols-3 gap-3">
                       
                       {/* Uploaded Preview items */}
-                      {photoUrls.map((url, index) => (
-                        <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-outline-variant">
-                          <img className="w-full h-full object-cover" src={url} alt={`Preview ${index + 1}`} />
+                      {photoItems.map((item, index) => (
+                        <div key={item.id} className="relative group aspect-square rounded-lg overflow-hidden border border-outline-variant">
+                          <img className="w-full h-full object-cover" src={item.url} alt={`Preview ${index + 1}`} />
                           <button 
-                            onClick={() => removePhoto(index)}
+                            type="button"
+                            onClick={() => removePhoto(item.id)}
                             className="absolute top-1 right-1 bg-error text-white rounded-full p-1 opacity-80 hover:opacity-100 transition-opacity shadow-lg flex items-center justify-center cursor-pointer"
                           >
                             <span className="material-symbols-outlined text-[14px]">close</span>
@@ -472,9 +527,9 @@ export const AddTransformer: React.FC = () => {
             </button>
             <button 
               onClick={() => handleSave('Submitted')}
-              disabled={isLoading || !serialNo.trim() || !selectedPart || photos.length === 0 || !testReport || isValidatingSerial || !!serialError}
+              disabled={isLoading || !serialNo.trim() || !selectedPart || photoItems.length === 0 || (!testReport && !existingTestReportUrl) || isValidatingSerial || !!serialError}
               className={`px-8 py-2.5 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center gap-2 text-sm ${
-                serialNo.trim() && selectedPart && photos.length > 0 && testReport && !isLoading && !isValidatingSerial && !serialError
+                serialNo.trim() && selectedPart && photoItems.length > 0 && (testReport || existingTestReportUrl) && !isLoading && !isValidatingSerial && !serialError
                   ? 'bg-primary text-white hover:shadow-primary/20 cursor-pointer'
                   : 'bg-primary-container text-on-primary-container opacity-60 cursor-not-allowed'
               }`}
